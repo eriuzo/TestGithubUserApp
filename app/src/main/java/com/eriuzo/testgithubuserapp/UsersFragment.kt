@@ -13,6 +13,7 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
 import com.eriuzo.testgithubuserapp.databinding.UsersFragmentBinding
 import com.eriuzo.testgithubuserapp.databinding.ViewItemUserBinding
 import kotlinx.coroutines.Job
@@ -98,7 +99,11 @@ class UsersListAdapter(itemCallback: DiffUtil.ItemCallback<GithubUser>) :
 
     override fun onBindViewHolder(holder: UsersVH, position: Int) {
         val item = getItem(position)
-        holder.avatar
+        Glide.with(holder.avatar.context)
+            .load(item.avatar_url)
+            .circleCrop()
+            .placeholder(R.drawable.ic_baseline_sync_24)
+            .into(holder.avatar)
         holder.name.text = item.login
     }
 }
