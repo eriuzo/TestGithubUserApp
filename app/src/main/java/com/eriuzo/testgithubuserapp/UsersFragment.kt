@@ -9,6 +9,7 @@ import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.observe
+import androidx.paging.PagedListAdapter
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.ListAdapter
@@ -44,13 +45,19 @@ class UsersFragment : Fragment() {
             editQuery.addTextChangedListener {
                 autoCompleteJob?.cancel("new letter")
                 autoCompleteJob = lifecycleScope.launchWhenResumed {
-                    delay(1500)
+                    delay(1000)
                     viewModel.searchUsers(it?.toString() ?: "")
+                    viewModel.users.observe(viewLifecycleOwner) {
+                        usersAdapter.submitList(it)
+                    }
                 }
             }
             buttonSearch.setOnClickListener {
-                lifecycleScope.launchWhenResumed {
+//                lifecycleScope.launchWhenResumed {
                     viewModel.searchUsers(editQuery.text.toString())
+//                }
+                viewModel.users.observe(viewLifecycleOwner) {
+                    usersAdapter.submitList(it)
                 }
             }
         }
@@ -88,7 +95,7 @@ class UsersVH(binding: ViewItemUserBinding) : RecyclerView.ViewHolder(binding.ro
 }
 
 class UsersListAdapter(itemCallback: DiffUtil.ItemCallback<GithubUser>) :
-    ListAdapter<GithubUser, UsersVH>(itemCallback) {
+    PagedListAdapter<GithubUser, UsersVH>(itemCallback) {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) = UsersVH(
         ViewItemUserBinding.inflate(
             LayoutInflater.from(parent.context),
@@ -99,11 +106,13 @@ class UsersListAdapter(itemCallback: DiffUtil.ItemCallback<GithubUser>) :
 
     override fun onBindViewHolder(holder: UsersVH, position: Int) {
         val item = getItem(position)
-        Glide.with(holder.avatar.context)
-            .load(item.avatar_url)
-            .circleCrop()
-            .placeholder(R.drawable.ic_baseline_sync_24)
-            .into(holder.avatar)
-        holder.name.text = item.login
+        item?.let {
+            Glide.with(holder.avatar.context)
+                .load(item.avatar_url)
+                .circleCrop()
+                .placeholder(R.drawable.ic_baseline_sync_24)
+                .into(holder.avatar)
+            holder.name.text = item.login
+        }
     }
 }

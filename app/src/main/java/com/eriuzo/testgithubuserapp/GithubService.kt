@@ -1,12 +1,17 @@
 package com.eriuzo.testgithubuserapp
 
 import com.squareup.moshi.JsonClass
+import retrofit2.Call
 import retrofit2.http.GET
 import retrofit2.http.Query
 
 interface GithubService {
     @GET("/search/users")
-    suspend fun searchUsers(@Query("q") queryString: String): GithubUserResponse
+    fun searchUsers(
+        @Query("q") queryString: String,
+        @Query("page") page: Int,
+        @Query("per_page") perPage: Int
+    ):Call<GithubUserResponse>
 }
 
 @JsonClass(generateAdapter = true)
