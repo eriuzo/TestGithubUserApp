@@ -11,7 +11,7 @@ interface GithubService {
         @Query("q") queryString: String,
         @Query("page") page: Int,
         @Query("per_page") perPage: Int
-    ):Call<GithubUserResponse>
+    ): Call<GithubUserResponse>
 }
 
 @JsonClass(generateAdapter = true)

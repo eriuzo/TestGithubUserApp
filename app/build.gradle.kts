@@ -4,7 +4,6 @@ plugins {
     kotlin("android.extensions")
     kotlin("kapt")
     id("kotlin-android")
-    id("com.apollographql.apollo")
 }
 repositories {
     mavenCentral()
@@ -86,13 +85,10 @@ dependencies {
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.7")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.3.7")
-    implementation("androidx.paging:paging-runtime-ktx:2.1.2") // For Kotlin use paging-runtime-ktx
-    implementation("androidx.paging:paging-common-ktx:2.1.2") // For Kotlin use paging-common-ktx
+    implementation("androidx.paging:paging-runtime-ktx:2.1.2")
+    implementation("androidx.paging:paging-common-ktx:2.1.2")
 
-    implementation("io.reactivex.rxjava2:rxjava:2.2.19")
-    implementation("io.reactivex.rxjava2:rxandroid:2.1.1")
     implementation("com.google.android.material:material:1.2.0-beta01")
-
 
     testImplementation("junit:junit:4.13")
     androidTestImplementation("androidx.test.ext:junit:1.1.1")

@@ -22,10 +22,7 @@ sealed class NetworkState {
     data class ERROR(val error: String) : NetworkState()
 }
 
-
-
 class UsersViewModel : ViewModel() {
-
     fun searchUsers(queryString: String?): Pair<LiveData<PagedList<GithubUser>>, MutableLiveData<NetworkState>?>? {
         if (queryString.isNullOrBlank()) return null
         val githubUserDataSourceFactory = GithubUserDataSourceFactory(githubService, queryString)
@@ -47,7 +44,6 @@ class UsersViewModel : ViewModel() {
             .build()
         retrofit.create(GithubService::class.java)
     }
-
 }
 
 class GithubUserDataSourceFactory(
