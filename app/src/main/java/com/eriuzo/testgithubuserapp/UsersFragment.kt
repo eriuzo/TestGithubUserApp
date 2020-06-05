@@ -8,6 +8,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.Observer
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.observe
 import androidx.paging.PagedList
@@ -18,6 +19,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.eriuzo.testgithubuserapp.databinding.UsersFragmentBinding
 import com.eriuzo.testgithubuserapp.databinding.ViewItemUserBinding
+import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
@@ -39,21 +41,12 @@ class UsersFragment : Fragment() {
         return b.root
     }
 
-    private val onResultsChanged: (PagedList<GithubUser>) -> Unit = {
-        binding?.apply {
-            if (it.isEmpty()) {
-                recyclerResults.visibility = View.INVISIBLE
-                textEmptyUsers.visibility = View.VISIBLE
-                textEmptyUsers.setText(R.string.empty_users)
-                textEmptyUsers.setTextColor(Color.BLACK)
-            } else {
-                recyclerResults.visibility = View.VISIBLE
-                textEmptyUsers.visibility = View.INVISIBLE
-                usersAdapter.submitList(it)
-            }
-        }
-    }
     private var autoCompleteJob: Job? = null
+
+    // empty observer just to trigger autocomplete api call.
+    private val dummyObserver = Observer<PagedList<GithubUser>> {
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding?.apply {
@@ -61,54 +54,38 @@ class UsersFragment : Fragment() {
                 autoCompleteJob?.cancel("new letter")
                 autoCompleteJob = lifecycleScope.launchWhenResumed {
                     delay(1000)
-                    val searchUsers = viewModel.searchUsers(it?.toString())
-                    searchUsers?.pagedList?.observe(viewLifecycleOwner){}
-                    searchUsers?.networkState?.observe(viewLifecycleOwner) {
-                        when (it) {
-                            NetworkState.LOADED -> {
-                                recyclerResults.visibility = View.VISIBLE
-                                textEmptyUsers.visibility = View.INVISIBLE
-                                searchUsers.pagedList?.removeObservers(viewLifecycleOwner)
-                                searchUsers.pagedList?.observe(viewLifecycleOwner, onResultsChanged)
-                            }
-                            NetworkState.LOADING -> {
-                                recyclerResults.visibility = View.INVISIBLE
-                                textEmptyUsers.visibility = View.VISIBLE
-                                textEmptyUsers.setText(R.string.loading)
-                                textEmptyUsers.setTextColor(Color.BLACK)
-                            }
-                            is NetworkState.ERROR -> {
-                                recyclerResults.visibility = View.INVISIBLE
-                                textEmptyUsers.visibility = View.VISIBLE
-                                textEmptyUsers.text = it.error
-                                textEmptyUsers.setTextColor(Color.RED)
-                            }
-                        }
-                    }
+                    handleSearch(it?.toString())
                 }
             }
             buttonSearch.setOnClickListener {
-                val searchUsers = viewModel.searchUsers(editQuery.text.toString())
-                searchUsers?.pagedList?.observe(viewLifecycleOwner, onResultsChanged)
-                searchUsers?.networkState?.observe(viewLifecycleOwner) {
-                    when (it) {
-                        NetworkState.LOADED -> {
-                            recyclerResults.visibility = View.VISIBLE
-                            textEmptyUsers.visibility = View.INVISIBLE
-                            searchUsers.pagedList?.observe(viewLifecycleOwner, onResultsChanged)
-                        }
-                        NetworkState.LOADING -> {
-                            recyclerResults.visibility = View.INVISIBLE
-                            textEmptyUsers.visibility = View.VISIBLE
-                            textEmptyUsers.setText(R.string.loading)
-                            textEmptyUsers.setTextColor(Color.BLACK)
-                        }
-                        is NetworkState.ERROR -> {
-                            recyclerResults.visibility = View.INVISIBLE
-                            textEmptyUsers.visibility = View.VISIBLE
-                            textEmptyUsers.text = it.error
-                            textEmptyUsers.setTextColor(Color.RED)
-                        }
+                handleSearch(editQuery.text.toString())
+            }
+        }
+    }
+
+    private fun handleSearch(query: String?) {
+        binding?.apply {
+            val searchUsers = viewModel.searchUsers(query)
+            searchUsers?.pagedList?.observe(viewLifecycleOwner, dummyObserver)
+            searchUsers?.networkState?.observe(viewLifecycleOwner) {
+                when (it) {
+                    NetworkState.LOADED -> {
+                        searchUsers.pagedList?.removeObserver(dummyObserver)
+                        searchUsers.pagedList?.observe(viewLifecycleOwner, {
+                            binding?.apply {
+                                if (it.isEmpty()) {
+                                    Snackbar.make(root, R.string.empty_users, Snackbar.LENGTH_SHORT)
+                                        .setBackgroundTint(Color.BLACK)
+                                        .show()
+                                }
+                                usersAdapter.submitList(it)
+                            }
+                        })
+                    }
+                    is NetworkState.ERROR -> {
+                        Snackbar.make(this.root, it.error, Snackbar.LENGTH_SHORT)
+                            .setBackgroundTint(Color.RED)
+                            .show()
                     }
                 }
             }
