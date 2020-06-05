@@ -65,13 +65,13 @@ class UsersFragment : Fragment() {
 
     private fun handleSearch(query: String?) {
         binding?.apply {
-            val searchUsers = viewModel.searchUsers(query)
-            searchUsers?.pagedList?.observe(viewLifecycleOwner, dummyObserver)
-            searchUsers?.networkState?.observe(viewLifecycleOwner) {
+            val (pagedList, networkState) = viewModel.searchUsers(query) ?: return
+            pagedList.observe(viewLifecycleOwner, dummyObserver)
+            networkState?.observe(viewLifecycleOwner) {
                 when (it) {
                     NetworkState.LOADED -> {
-                        searchUsers.pagedList?.removeObserver(dummyObserver)
-                        searchUsers.pagedList?.observe(viewLifecycleOwner, {
+                        pagedList.removeObserver(dummyObserver)
+                        pagedList.observe(viewLifecycleOwner, {
                             binding?.apply {
                                 if (it.isEmpty()) {
                                     Snackbar.make(root, R.string.empty_users, Snackbar.LENGTH_SHORT)

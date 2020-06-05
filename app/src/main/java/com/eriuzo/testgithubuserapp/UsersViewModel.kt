@@ -22,22 +22,16 @@ sealed class NetworkState {
     data class ERROR(val error: String) : NetworkState()
 }
 
-data class Container(
-    val pagedList: LiveData<PagedList<GithubUser>>? = null,
-    val networkState: LiveData<NetworkState>? = null
-)
+
 
 class UsersViewModel : ViewModel() {
 
-    fun searchUsers(queryString: String?): Container? {
+    fun searchUsers(queryString: String?): Pair<LiveData<PagedList<GithubUser>>, MutableLiveData<NetworkState>?>? {
         if (queryString.isNullOrBlank()) return null
         val githubUserDataSourceFactory = GithubUserDataSourceFactory(githubService, queryString)
         val pagedList = githubUserDataSourceFactory.toLiveData(10)
         val sourceLiveData = githubUserDataSourceFactory.sourceLiveData
-        return Container(
-            pagedList,
-            sourceLiveData.value?.networkState
-        )
+        return pagedList to sourceLiveData.value?.networkState
     }
 
     private val githubService: GithubService by lazy {

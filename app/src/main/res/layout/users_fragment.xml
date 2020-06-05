@@ -37,15 +37,4 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintTop_toBottomOf="@id/edit_query" />
 
-    <TextView
-        android:id="@+id/text_empty_users"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:gravity="center"
-        android:visibility="invisible"
-        android:text="@string/empty_users"
-        android:textAppearance="@style/TextAppearance.AppCompat.Display2"
-        app:layout_constraintBottom_toBottomOf="@id/recycler_results"
-        app:layout_constraintTop_toTopOf="@id/recycler_results" />
-
 </androidx.constraintlayout.widget.ConstraintLayout>
