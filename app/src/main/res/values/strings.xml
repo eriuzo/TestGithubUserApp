@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">TestGithubUserApp</string>
+    <string name="empty_users">No users found.</string>
+    <string name="loading">Loading users…</string>
 </resources>

@@ -1,5 +1,6 @@
 package com.eriuzo.testgithubuserapp
 
+import android.graphics.Color
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
@@ -9,10 +10,10 @@ import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.observe
+import androidx.paging.PagedList
 import androidx.paging.PagedListAdapter
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.eriuzo.testgithubuserapp.databinding.UsersFragmentBinding
@@ -38,6 +39,20 @@ class UsersFragment : Fragment() {
         return b.root
     }
 
+    private val onResultsChanged: (PagedList<GithubUser>) -> Unit = {
+        binding?.apply {
+            if (it.isEmpty()) {
+                recyclerResults.visibility = View.INVISIBLE
+                textEmptyUsers.visibility = View.VISIBLE
+                textEmptyUsers.setText(R.string.empty_users)
+                textEmptyUsers.setTextColor(Color.BLACK)
+            } else {
+                recyclerResults.visibility = View.VISIBLE
+                textEmptyUsers.visibility = View.INVISIBLE
+                usersAdapter.submitList(it)
+            }
+        }
+    }
     private var autoCompleteJob: Job? = null
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -46,22 +61,58 @@ class UsersFragment : Fragment() {
                 autoCompleteJob?.cancel("new letter")
                 autoCompleteJob = lifecycleScope.launchWhenResumed {
                     delay(1000)
-                    viewModel.searchUsers(it?.toString() ?: "")
-                    viewModel.users.observe(viewLifecycleOwner) {
-                        usersAdapter.submitList(it)
+                    val searchUsers = viewModel.searchUsers(it?.toString())
+                    searchUsers?.pagedList?.observe(viewLifecycleOwner){}
+                    searchUsers?.networkState?.observe(viewLifecycleOwner) {
+                        when (it) {
+                            NetworkState.LOADED -> {
+                                recyclerResults.visibility = View.VISIBLE
+                                textEmptyUsers.visibility = View.INVISIBLE
+                                searchUsers.pagedList?.removeObservers(viewLifecycleOwner)
+                                searchUsers.pagedList?.observe(viewLifecycleOwner, onResultsChanged)
+                            }
+                            NetworkState.LOADING -> {
+                                recyclerResults.visibility = View.INVISIBLE
+                                textEmptyUsers.visibility = View.VISIBLE
+                                textEmptyUsers.setText(R.string.loading)
+                                textEmptyUsers.setTextColor(Color.BLACK)
+                            }
+                            is NetworkState.ERROR -> {
+                                recyclerResults.visibility = View.INVISIBLE
+                                textEmptyUsers.visibility = View.VISIBLE
+                                textEmptyUsers.text = it.error
+                                textEmptyUsers.setTextColor(Color.RED)
+                            }
+                        }
                     }
                 }
             }
             buttonSearch.setOnClickListener {
-//                lifecycleScope.launchWhenResumed {
-                    viewModel.searchUsers(editQuery.text.toString())
-//                }
-                viewModel.users.observe(viewLifecycleOwner) {
-                    usersAdapter.submitList(it)
+                val searchUsers = viewModel.searchUsers(editQuery.text.toString())
+                searchUsers?.pagedList?.observe(viewLifecycleOwner, onResultsChanged)
+                searchUsers?.networkState?.observe(viewLifecycleOwner) {
+                    when (it) {
+                        NetworkState.LOADED -> {
+                            recyclerResults.visibility = View.VISIBLE
+                            textEmptyUsers.visibility = View.INVISIBLE
+                            searchUsers.pagedList?.observe(viewLifecycleOwner, onResultsChanged)
+                        }
+                        NetworkState.LOADING -> {
+                            recyclerResults.visibility = View.INVISIBLE
+                            textEmptyUsers.visibility = View.VISIBLE
+                            textEmptyUsers.setText(R.string.loading)
+                            textEmptyUsers.setTextColor(Color.BLACK)
+                        }
+                        is NetworkState.ERROR -> {
+                            recyclerResults.visibility = View.INVISIBLE
+                            textEmptyUsers.visibility = View.VISIBLE
+                            textEmptyUsers.text = it.error
+                            textEmptyUsers.setTextColor(Color.RED)
+                        }
+                    }
                 }
             }
         }
-
     }
 
     private val usersAdapter: UsersListAdapter by lazy {
@@ -83,9 +134,6 @@ class UsersFragment : Fragment() {
             isNestedScrollingEnabled = false
             adapter = usersAdapter
         }
-        viewModel.users.observe(viewLifecycleOwner) {
-            usersAdapter.submitList(it)
-        }
     }
 }
 
@@ -96,13 +144,10 @@ class UsersVH(binding: ViewItemUserBinding) : RecyclerView.ViewHolder(binding.ro
 
 class UsersListAdapter(itemCallback: DiffUtil.ItemCallback<GithubUser>) :
     PagedListAdapter<GithubUser, UsersVH>(itemCallback) {
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) = UsersVH(
-        ViewItemUserBinding.inflate(
-            LayoutInflater.from(parent.context),
-            parent,
-            false
-        )
-    )
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): UsersVH {
+        val inflater = LayoutInflater.from(parent.context)
+        return UsersVH(ViewItemUserBinding.inflate(inflater, parent, false))
+    }
 
     override fun onBindViewHolder(holder: UsersVH, position: Int) {
         val item = getItem(position)
